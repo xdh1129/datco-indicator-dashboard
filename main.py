@@ -17,7 +17,7 @@ from pydantic import BaseModel
 BASE_DIR = Path(__file__).resolve().parent
 INDEX_FILE = BASE_DIR / "index.html"
 DEFAULT_DATA_PERIOD = "1mo"
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"
 DEFAULT_MSTR_BTC_HOLDINGS = 331200
 DEFAULT_SHARES_OUTSTANDING = 200000000
 DEFAULT_MSTR_CASH_BALANCE = 0.0
