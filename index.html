@@ -33,10 +33,34 @@
             margin-bottom: 2rem;
             font-size: 0.95rem;
         }
+        .chart-switcher {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        .chart-toggle {
+            border: 1px solid #d9dfe8;
+            background: #fff;
+            color: #334155;
+            border-radius: 999px;
+            padding: 0.55rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .chart-toggle:hover {
+            border-color: #94a3b8;
+        }
+        .chart-toggle.active {
+            background: #1f2937;
+            color: #fff;
+            border-color: #1f2937;
+        }
         #chart {
             width: 100%;
-            height: 500px;
-            margin-bottom: 1rem;
+            height: 360px;
+            margin-bottom: 0.75rem;
         }
         .ai-insight-box {
             margin-top: 2rem;
@@ -64,9 +88,12 @@
 <body>
 
     <div class="dashboard-container">
-        <h1>MicroStrategy (MSTR) Premium to NAV 趨勢</h1>
-        <p class="subtitle">觀察 MSTR 溢價率與比特幣價格之連動關係</p>
+        <h1>MicroStrategy (MSTR) mNAV 與 BTC 趨勢</h1>
         
+        <div class="chart-switcher">
+            <button type="button" class="chart-toggle active" data-view="mnav">mNAV + BTC</button>
+            <button type="button" class="chart-toggle" data-view="mnavPremium">Premium mNAV + BTC</button>
+        </div>
         <div id="chart">載入數據中，請確認後端 API 已啟動...</div>
 
         <div class="ai-insight-box">
@@ -78,6 +105,7 @@
     <script>
         async function fetchAndRenderChart() {
             let indicatorData = [];
+            let chart;
 
             // ==========================================
             // 1. 獲取指標數據並繪製圖表
@@ -89,71 +117,154 @@
 
                 // 提取圖表需要的 X 軸與 Y 軸資料
                 const dates = indicatorData.map(item => item.date);
-                const premiums = indicatorData.map(item => item.premium);
+                const mnavValues = indicatorData.map(item => item.mnav);
+                const mnavPremiums = indicatorData.map(item => item.mnavPremiumPct);
                 const btcPrices = indicatorData.map(item => item.btcPrice);
-
-                // 初始化 ECharts 實例
-                const chartDom = document.getElementById('chart');
-                const myChart = echarts.init(chartDom);
-
-                // 設定圖表選項 (雙 Y 軸折線圖)
-                const option = {
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: { type: 'cross' }
-                    },
-                    legend: {
-                        data: ['Premium to NAV (%)', 'BTC Price (USD)'],
-                        bottom: 0
-                    },
-                    grid: { left: '5%', right: '5%', bottom: '10%', containLabel: true },
-                    xAxis: {
-                        type: 'category',
-                        boundaryGap: false,
-                        data: dates
-                    },
-                    yAxis: [
-                        {
-                            type: 'value',
-                            name: 'Premium (%)',
-                            position: 'left',
-                            axisLine: { show: true, lineStyle: { color: '#ee6666' } },
-                            axisLabel: { formatter: '{value} %' },
-                            scale: true
-                        },
-                        {
-                            type: 'value',
-                            name: 'BTC Price',
-                            position: 'right',
-                            splitLine: { show: false }, 
-                            axisLine: { show: true, lineStyle: { color: '#5470c6' } },
-                            axisLabel: { formatter: '$ {value}' },
-                            scale: true 
-                        }
-                    ],
-                    series: [
-                        {
-                            name: 'Premium to NAV (%)',
-                            type: 'line',
-                            yAxisIndex: 0,
-                            data: premiums,
-                            smooth: true,
-                            itemStyle: { color: '#ee6666' },
-                            areaStyle: { color: 'rgba(238, 102, 102, 0.1)' } 
-                        },
-                        {
-                            name: 'BTC Price (USD)',
-                            type: 'line',
-                            yAxisIndex: 1,
-                            data: btcPrices,
-                            smooth: true,
-                            itemStyle: { color: '#5470c6' }
-                        }
-                    ]
+                const formatNumber = (value, digits = 2) => Number(value).toLocaleString('en-US', {
+                    minimumFractionDigits: digits,
+                    maximumFractionDigits: digits
+                });
+                const formatSignedLabel = (value, digits = 1, premiumLabel = 'Premium', discountLabel = 'Discount') => {
+                    const numericValue = Number(value);
+                    const label = numericValue >= 0 ? premiumLabel : discountLabel;
+                    return `${label}: ${formatNumber(Math.abs(numericValue), digits)}%`;
                 };
 
-                // 渲染圖表
-                myChart.setOption(option);
+                const chartDom = document.getElementById('chart');
+                chart = echarts.init(chartDom);
+
+                const chartViews = {
+                    mnav: {
+                        title: 'mNAV (EV / BTC) + BTC Price',
+                        color: '#fa8c16',
+                        data: mnavValues,
+                        axisName: 'mNAV',
+                        axisLabel: '{value}x',
+                        legend: 'mNAV (EV / BTC)',
+                        btcLegend: 'BTC Price (USD)',
+                        formatter: (point) => `
+                            <div style="line-height:1.7;">
+                                <strong>${point.date}</strong><br>
+                                MSTR Price: $${formatNumber(point.mstrPrice)}<br>
+                                Enterprise Value: $${formatNumber(point.enterpriseValue)}<br>
+                                mNAV (EV / BTC): ${formatNumber(point.mnav, 3)}x<br>
+                                → mNAV ${formatSignedLabel(point.mnavPremiumPct, 1)}<br>
+                                BTC Price: $${formatNumber(point.btcPrice)}<br>
+                                BTC Value: $${formatNumber(point.btcValue)}<br>
+                                Snapshot As Of: ${point.snapshotAsOfDate ?? 'N/A'}
+                            </div>
+                        `
+                    },
+                    mnavPremium: {
+                        title: 'mNAV Premium / Discount + BTC Price',
+                        color: '#ee6666',
+                        data: mnavPremiums,
+                        axisName: 'mNAV Premium (%)',
+                        axisLabel: '{value} %',
+                        legend: 'mNAV Premium / Discount (%)',
+                        btcLegend: 'BTC Price (USD)',
+                        formatter: (point) => `
+                            <div style="line-height:1.7;">
+                                <strong>${point.date}</strong><br>
+                                MSTR Price: $${formatNumber(point.mstrPrice)}<br>
+                                Enterprise Value: $${formatNumber(point.enterpriseValue)}<br>
+                                mNAV (EV / BTC): ${formatNumber(point.mnav, 3)}x<br>
+                                → mNAV ${formatSignedLabel(point.mnavPremiumPct, 1)}<br>
+                                BTC Price: $${formatNumber(point.btcPrice)}<br>
+                                BTC Value: $${formatNumber(point.btcValue)}<br>
+                                Snapshot As Of: ${point.snapshotAsOfDate ?? 'N/A'}
+                            </div>
+                        `,
+                        areaColor: 'rgba(238, 102, 102, 0.1)'
+                    }
+                };
+
+                const renderChart = (viewKey) => {
+                    const view = chartViews[viewKey];
+                    chart.setOption({
+                        title: {
+                            text: view.title,
+                            left: 'center',
+                            top: 8,
+                            textStyle: {
+                                fontSize: 15,
+                                fontWeight: 600,
+                                color: '#1f2937'
+                            }
+                        },
+                        tooltip: {
+                            trigger: 'axis',
+                            axisPointer: { type: 'cross' },
+                            formatter: (params) => view.formatter(indicatorData[params[0].dataIndex])
+                        },
+                        legend: {
+                            data: [view.legend, view.btcLegend],
+                            bottom: 0
+                        },
+                        grid: { left: '8%', right: '8%', top: '16%', bottom: '12%', containLabel: true },
+                        xAxis: {
+                            type: 'category',
+                            boundaryGap: false,
+                            data: dates
+                        },
+                        yAxis: [
+                            {
+                                type: 'value',
+                                name: view.axisName,
+                                position: 'left',
+                                axisLine: { show: true, lineStyle: { color: view.color } },
+                                axisLabel: { formatter: view.axisLabel },
+                                scale: true
+                            },
+                            {
+                                type: 'value',
+                                name: 'BTC Price',
+                                position: 'right',
+                                axisLine: { show: true, lineStyle: { color: '#5470c6' } },
+                                axisLabel: { formatter: '$ {value}' },
+                                scale: true,
+                                splitLine: { show: false }
+                            }
+                        ],
+                        series: [
+                            {
+                                name: view.legend,
+                                type: 'line',
+                                yAxisIndex: 0,
+                                data: view.data,
+                                smooth: true,
+                                itemStyle: { color: view.color },
+                                lineStyle: { width: 3 },
+                                areaStyle: view.areaColor ? { color: view.areaColor } : undefined
+                            },
+                            {
+                                name: view.btcLegend,
+                                type: 'line',
+                                yAxisIndex: 1,
+                                data: btcPrices,
+                                smooth: true,
+                                itemStyle: { color: '#5470c6' },
+                                lineStyle: { width: 3 },
+                                areaStyle: { color: 'rgba(84, 112, 198, 0.08)' }
+                            }
+                        ]
+                    }, true);
+                };
+
+                const toggleButtons = document.querySelectorAll('.chart-toggle');
+                toggleButtons.forEach((button) => {
+                    button.addEventListener('click', () => {
+                        toggleButtons.forEach((item) => item.classList.remove('active'));
+                        button.classList.add('active');
+                        renderChart(button.dataset.view);
+                    });
+                });
+
+                renderChart('mnav');
+
+                window.addEventListener('resize', () => {
+                    chart.resize();
+                });
 
             } catch (error) {
                 console.error("Fetch data error:", error);
