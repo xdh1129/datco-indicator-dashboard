@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAT.co 投資指標儀表板</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            margin: 0;
+        }
+        .dashboard-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+            padding: 2rem;
+            width: 100%;
+            max-width: 1000px;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #1a1a1a;
+        }
+        p.subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        #chart {
+            width: 100%;
+            height: 500px;
+            margin-bottom: 1rem;
+        }
+        .ai-insight-box {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #f8f9fa;
+            border-left: 4px solid #5470c6;
+            border-radius: 4px;
+        }
+        .ai-insight-box h3 {
+            margin-top: 0;
+            color: #1a1a1a;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #ai-insight {
+            line-height: 1.6;
+            color: #444;
+            margin-bottom: 0;
+            white-space: pre-wrap; /* 保留 API 回傳的換行格式 */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <h1>MicroStrategy (MSTR) Premium to NAV 趨勢</h1>
+        <p class="subtitle">觀察 MSTR 溢價率與比特幣價格之連動關係</p>
+        
+        <div id="chart">載入數據中，請確認後端 API 已啟動...</div>
+
+        <div class="ai-insight-box">
+            <h3>🤖 AI 趨勢洞察</h3>
+            <p id="ai-insight">正在分析近期數據趨勢，請稍候...</p>
+        </div>
+    </div>
+
+    <script>
+        async function fetchAndRenderChart() {
+            let indicatorData = [];
+
+            // ==========================================
+            // 1. 獲取指標數據並繪製圖表
+            // ==========================================
+            try {
+                const response = await fetch('/api/indicator-data');
+                if (!response.ok) throw new Error('網路回應錯誤');
+                indicatorData = await response.json();
+
+                // 提取圖表需要的 X 軸與 Y 軸資料
+                const dates = indicatorData.map(item => item.date);
+                const premiums = indicatorData.map(item => item.premium);
+                const btcPrices = indicatorData.map(item => item.btcPrice);
+
+                // 初始化 ECharts 實例
+                const chartDom = document.getElementById('chart');
+                const myChart = echarts.init(chartDom);
+
+                // 設定圖表選項 (雙 Y 軸折線圖)
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { type: 'cross' }
+                    },
+                    legend: {
+                        data: ['Premium to NAV (%)', 'BTC Price (USD)'],
+                        bottom: 0
+                    },
+                    grid: { left: '5%', right: '5%', bottom: '10%', containLabel: true },
+                    xAxis: {
+                        type: 'category',
+                        boundaryGap: false,
+                        data: dates
+                    },
+                    yAxis: [
+                        {
+                            type: 'value',
+                            name: 'Premium (%)',
+                            position: 'left',
+                            axisLine: { show: true, lineStyle: { color: '#ee6666' } },
+                            axisLabel: { formatter: '{value} %' },
+                            scale: true
+                        },
+                        {
+                            type: 'value',
+                            name: 'BTC Price',
+                            position: 'right',
+                            splitLine: { show: false }, 
+                            axisLine: { show: true, lineStyle: { color: '#5470c6' } },
+                            axisLabel: { formatter: '$ {value}' },
+                            scale: true 
+                        }
+                    ],
+                    series: [
+                        {
+                            name: 'Premium to NAV (%)',
+                            type: 'line',
+                            yAxisIndex: 0,
+                            data: premiums,
+                            smooth: true,
+                            itemStyle: { color: '#ee6666' },
+                            areaStyle: { color: 'rgba(238, 102, 102, 0.1)' } 
+                        },
+                        {
+                            name: 'BTC Price (USD)',
+                            type: 'line',
+                            yAxisIndex: 1,
+                            data: btcPrices,
+                            smooth: true,
+                            itemStyle: { color: '#5470c6' }
+                        }
+                    ]
+                };
+
+                // 渲染圖表
+                myChart.setOption(option);
+
+            } catch (error) {
+                console.error("Fetch data error:", error);
+                document.getElementById('chart').innerText = '無法載入資料，請確認後端 http://127.0.0.1:8000 是否正在執行。';
+                document.getElementById('ai-insight').innerText = '因缺乏數據，無法進行分析。';
+                return; // 如果抓不到圖表數據，就中斷執行，不呼叫 AI
+            }
+
+            // ==========================================
+            // 2. 獲取 AI 分析報告
+            // ==========================================
+            try {
+                // 將抓到的完整數據丟給後端的 AI API
+                const insightResponse = await fetch('/api/insights', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify(indicatorData)
+                });
+                
+                if (!insightResponse.ok) throw new Error('AI API 回應錯誤');
+                
+                const insightData = await insightResponse.json();
+                
+                // 將回傳的分析文字更新到網頁上
+                document.getElementById('ai-insight').innerText = insightData.insight;
+
+            } catch (aiError) {
+                console.error("AI Insight error:", aiError);
+                document.getElementById('ai-insight').innerText = "AI 分析服務暫時無法使用，請確認後端 API 與 Gemini API Key 設定是否正確。";
+            }
+        }
+
+        // 執行主程式
+        fetchAndRenderChart();
+    </script>
+</body>
+</html>
