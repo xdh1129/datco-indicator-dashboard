@@ -29,7 +29,6 @@ STRATEGY_BITCOIN_KPI_API_URL = "https://api.strategy.com/btc/bitcoinKpis"
 STRATEGY_API_TIMEOUT_SECONDS = 10
 STRATEGY_SNAPSHOT_CACHE_TTL_SECONDS = 3600
 INDICATOR_CACHE_TTL_SECONDS = 3600
-AI_INSIGHTS_CACHE_TTL_SECONDS = 3600
 NEXT_DATA_PATTERN = re.compile(
     r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>',
     re.DOTALL,
@@ -70,24 +69,6 @@ class IndicatorData(BaseModel):
     enterpriseValue: float
     mnav: float
     mnavPremiumPct: float
-
-
-def get_gemini_api_key() -> str:
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise HTTPException(
-            status_code=503,
-            detail="Gemini service is not configured. Set GEMINI_API_KEY in the deployment environment.",
-        )
-
-    return api_key
-
-
-def normalize_gemini_model_name(model_name: str) -> str:
-    normalized = model_name.strip()
-    if normalized.startswith("models/"):
-        normalized = normalized[len("models/"):]
-    return normalized or DEFAULT_GEMINI_MODEL
 
 
 def get_mstr_holdings_fallback() -> int:
@@ -193,14 +174,18 @@ def build_insight_prompt(recent_data: list[dict]) -> str:
     """
 
 
-@ttl_cache(maxsize=64, ttl=AI_INSIGHTS_CACHE_TTL_SECONDS)
-def generate_cached_insight(recent_data_json: str, model_name: str) -> str:
-    api_key = get_gemini_api_key()
-    recent_data = json.loads(recent_data_json)
-    prompt = build_insight_prompt(recent_data)
+def generate_insight(recent_data: list[dict]) -> str:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Gemini service is not configured. Set GEMINI_API_KEY in the deployment environment.",
+        )
 
+    model_name = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
+    prompt = build_insight_prompt(recent_data)
     client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(model=normalize_gemini_model_name(model_name), contents=prompt)
+    response = client.models.generate_content(model=model_name, contents=prompt)
     insight_text = (response.text or "").strip()
 
     if not insight_text:
@@ -335,9 +320,8 @@ def generate_insights(data: list[IndicatorData]):
 
     try:
         recent_data = [item.model_dump() for item in data[-7:]]
-        recent_data_json = json.dumps(recent_data, sort_keys=True, ensure_ascii=False)
-        model_name = normalize_gemini_model_name(os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL))
-        insight_text = generate_cached_insight(recent_data_json, model_name)
+        model_name = os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
+        insight_text = generate_insight(recent_data)
         return {"insight": insight_text}
     except HTTPException:
         raise
