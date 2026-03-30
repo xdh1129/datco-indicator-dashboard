@@ -3,304 +3,1008 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DAT.co 投資指標儀表板</title>
+    <title>MSTR Core Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+        :root {
+            color-scheme: dark;
+            --bg: #070b14;
+            --panel: rgba(7, 12, 24, 0.88);
+            --panel-strong: rgba(4, 8, 18, 0.96);
+            --panel-soft: rgba(15, 23, 42, 0.72);
+            --border: rgba(71, 85, 105, 0.28);
+            --border-strong: rgba(56, 189, 248, 0.35);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --subtle: #64748b;
+            --accent: #34d399;
+            --accent-soft: rgba(52, 211, 153, 0.14);
+            --btc: #38bdf8;
+            --mnav: #fb923c;
+            --premium: #f87171;
+            --danger: #fb7185;
+            --shadow: 0 24px 80px rgba(2, 6, 23, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f9;
-            color: #333;
-            padding: 2rem;
-            display: flex;
-            justify-content: center;
             margin: 0;
+            min-height: 100vh;
+            font-family: "Space Grotesk", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 30%),
+                radial-gradient(circle at top right, rgba(52, 211, 153, 0.12), transparent 24%),
+                linear-gradient(180deg, #050814 0%, #07101f 38%, #030712 100%);
         }
-        .dashboard-container {
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
-            padding: 2rem;
-            width: 100%;
-            max-width: 1000px;
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: radial-gradient(circle at center, black, transparent 85%);
         }
-        h1 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-            color: #1a1a1a;
+
+        .page {
+            width: min(1320px, calc(100vw - 32px));
+            margin: 0 auto;
+            padding: 24px 0 40px;
         }
-        p.subtitle {
-            color: #666;
-            margin-bottom: 2rem;
-            font-size: 0.95rem;
+
+        .status-bar,
+        .panel,
+        .metric-card,
+        .log-panel {
+            border: 1px solid var(--border);
+            background: var(--panel);
+            backdrop-filter: blur(18px);
+            box-shadow: var(--shadow);
         }
-        .chart-switcher {
+
+        .status-bar {
             display: flex;
-            gap: 0.75rem;
             flex-wrap: wrap;
-            margin-bottom: 1rem;
+            align-items: center;
+            gap: 18px;
+            padding: 14px 18px;
+            border-radius: 18px;
+            margin-bottom: 22px;
         }
-        .chart-toggle {
-            border: 1px solid #d9dfe8;
-            background: #fff;
-            color: #334155;
-            border-radius: 999px;
-            padding: 0.55rem 1rem;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: #f8fafc;
         }
-        .chart-toggle:hover {
-            border-color: #94a3b8;
-        }
-        .chart-toggle.active {
-            background: #1f2937;
-            color: #fff;
-            border-color: #1f2937;
-        }
-        #chart {
-            width: 100%;
-            height: 360px;
-            margin-bottom: 0.75rem;
-        }
-        .ai-insight-box {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background-color: #f8f9fa;
-            border-left: 4px solid #5470c6;
-            border-radius: 4px;
-        }
-        .ai-insight-box h3 {
-            margin-top: 0;
-            color: #1a1a1a;
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.22), rgba(56, 189, 248, 0.18));
+            border: 1px solid rgba(125, 211, 252, 0.32);
+            color: var(--accent);
             font-size: 1.1rem;
+        }
+
+        .status-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-left: 10px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.72rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+        }
+
+        .status-item strong {
+            color: var(--text);
+            font-weight: 700;
+            margin-left: 6px;
+        }
+
+        .status-item .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: var(--accent);
+            box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+            animation: pulse 1.8s infinite;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+            gap: 22px;
+        }
+
+        .sidebar {
+            display: grid;
+            gap: 18px;
+        }
+
+        .panel,
+        .metric-card,
+        .log-panel {
+            border-radius: 20px;
+        }
+
+        .panel {
+            padding: 18px;
+        }
+
+        .panel h2,
+        .panel h3,
+        .metric-card h3 {
+            margin: 0 0 14px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .hero-title {
+            margin: 0;
+            font-size: clamp(2rem, 3vw, 3rem);
+            line-height: 0.95;
+            letter-spacing: -0.05em;
+            color: #f8fafc;
+        }
+
+        .hero-subtitle {
+            margin: 10px 0 0;
+            font-size: 0.96rem;
+            line-height: 1.7;
+            color: var(--muted);
+            max-width: 62ch;
+        }
+
+        .live-stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .metric-row {
+            padding: 14px 0;
+            border-top: 1px solid rgba(51, 65, 85, 0.55);
+        }
+
+        .metric-row:first-of-type {
+            border-top: 0;
+            padding-top: 0;
+        }
+
+        .metric-label {
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--subtle);
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: -0.05em;
+            color: #f8fafc;
+        }
+
+        .metric-value.is-btc {
+            color: var(--btc);
+        }
+
+        .metric-value.is-premium {
+            color: var(--mnav);
+        }
+
+        .metric-trend {
+            margin-top: 8px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.76rem;
+            color: var(--muted);
+        }
+
+        .metric-trend.positive {
+            color: var(--accent);
+        }
+
+        .metric-trend.negative {
+            color: var(--danger);
+        }
+
+        .progress-rail {
+            margin-top: 10px;
+            width: 100%;
+            height: 6px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #fb923c, #f97316);
+            transition: width 0.35s ease;
+        }
+
+        .mode-buttons {
+            display: grid;
+            gap: 10px;
+        }
+
+        .mode-button {
+            border: 1px solid transparent;
+            border-radius: 14px;
+            padding: 12px 14px;
+            text-align: left;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.76rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .mode-button:hover {
+            background: rgba(15, 23, 42, 0.88);
+            color: var(--text);
+            transform: translateY(-1px);
+        }
+
+        .mode-button.active {
+            background: var(--accent-soft);
+            border-color: rgba(52, 211, 153, 0.35);
+            color: var(--accent);
+        }
+
+        .main-stage {
+            display: grid;
+            gap: 18px;
+        }
+
+        .chart-panel {
+            position: relative;
+            overflow: hidden;
+            padding: 22px;
+            background:
+                radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 25%),
+                linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(7, 12, 24, 0.94));
+        }
+
+        .chart-panel::after {
+            content: "";
+            position: absolute;
+            inset: auto -60px -60px auto;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(52, 211, 153, 0.12), transparent 68%);
+            pointer-events: none;
+        }
+
+        .panel-head {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 18px;
+        }
+
+        .panel-head h2 {
+            margin-bottom: 8px;
+        }
+
+        .panel-head p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .panel-badges {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--muted);
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .legend-chip {
             display: flex;
             align-items: center;
             gap: 8px;
+            color: var(--muted);
         }
-        #ai-insight {
-            line-height: 1.6;
-            color: #444;
-            margin-bottom: 0;
-            white-space: pre-wrap; /* 保留 API 回傳的換行格式 */
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+        }
+
+        #chart {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 460px;
+        }
+
+        .loading-state,
+        .error-state {
+            height: 100%;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            text-align: center;
+            color: var(--muted);
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.82rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .insight-panel {
+            padding: 18px;
+        }
+
+        .insight-title {
+            margin: 0 0 10px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .insight-text {
+            margin: 0;
+            color: var(--text);
+            font-size: 0.95rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+
+        .insight-text.is-muted {
+            color: var(--muted);
+        }
+
+        .insight-text.is-warning {
+            color: #fdba74;
+        }
+
+        .insight-text.is-error {
+            color: #fda4af;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .metric-card {
+            padding: 18px;
+        }
+
+        .metric-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+            color: #f8fafc;
+        }
+
+        .metric-card .note {
+            margin-top: 10px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .footer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 22px;
+            padding-top: 18px;
+            font-family: "JetBrains Mono", monospace;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--subtle);
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+        }
+
+        @media (max-width: 980px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page {
+                width: min(100vw - 20px, 1320px);
+                padding-top: 16px;
+            }
+
+            .status-bar,
+            .panel,
+            .metric-card,
+            .log-panel {
+                border-radius: 16px;
+            }
+
+            .metric-value {
+                font-size: 1.7rem;
+            }
+
+            #chart {
+                height: 360px;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="page">
+        <header class="status-bar">
+            <div class="brand">
+                <div class="brand-icon">M</div>
+                <span>MSTR_CORE_v2</span>
+            </div>
+            <div class="status-list">
+                <div class="status-item">status:<strong><span class="live-dot"></span><span id="system-status">Operational</span></strong></div>
+                <div class="status-item">network:<strong id="network-label">Mainnet</strong></div>
+            </div>
+        </header>
 
-    <div class="dashboard-container">
-        <h1>MicroStrategy (MSTR) mNAV 與 BTC 趨勢</h1>
-        
-        <div class="chart-switcher">
-            <button type="button" class="chart-toggle active" data-view="mnav">mNAV + BTC</button>
-            <button type="button" class="chart-toggle" data-view="mnavPremium">Premium mNAV + BTC</button>
-        </div>
-        <div id="chart">載入數據中，請確認後端 API 已啟動...</div>
+        <section class="panel" style="margin-bottom: 22px;">
+            <h2>Mission Brief</h2>
+            <h1 class="hero-title">MicroStrategy mNAV × Bitcoin Signal Deck</h1>
+           
+        </section>
 
-        <div class="ai-insight-box">
-            <h3>🤖 AI 趨勢洞察</h3>
-            <p id="ai-insight">正在分析近期數據趨勢，請稍候...</p>
-        </div>
+        <main class="hero">
+            <aside class="sidebar">
+                <section class="panel">
+                    <h3>Live Market Data</h3>
+                    <div class="live-stack">
+                        <div class="metric-row">
+                            <div class="metric-label">MSTR Price</div>
+                            <div class="metric-value" id="mstr-price">$ --</div>
+                            <div class="metric-trend" id="mstr-trend">等待資料...</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-label">BTC Price</div>
+                            <div class="metric-value is-btc" id="btc-price">$ --</div>
+                            <div class="metric-trend" id="btc-trend">等待資料...</div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-label">mNAV Premium</div>
+                            <div class="metric-value is-premium" id="premium-value">-- %</div>
+                            <div class="metric-trend" id="premium-trend">等待資料...</div>
+                            <div class="progress-rail">
+                                <div class="progress-fill" id="premium-progress"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h3>Control Panel</h3>
+                    <div class="mode-buttons">
+                        <button type="button" class="mode-button active" data-mode="mnav">
+                            [01] mNAV + BTC Stream
+                        </button>
+                        <button type="button" class="mode-button" data-mode="premium">
+                            [02] Premium Analytics
+                        </button>
+                    </div>
+                </section>
+            </aside>
+
+            <section class="main-stage">
+                <section class="panel chart-panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2>Market Correlation Matrix</h2>
+                            <p id="chart-description">Visualizing MSTR leverage versus BTC baseline.</p>
+                        </div>
+                        <div class="panel-badges">
+                            <span id="range-label">Range: --</span>
+                            <span id="snapshot-label">Snapshot: --</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-legend">
+                        <div class="legend-chip">
+                            <span class="legend-dot" id="primary-legend-dot" style="background: var(--mnav);"></span>
+                            <span id="primary-legend-label">mNAV (EV / BTC)</span>
+                        </div>
+                        <div class="legend-chip">
+                            <span class="legend-dot" style="background: var(--btc);"></span>
+                            <span>BTC Price (USD)</span>
+                        </div>
+                    </div>
+
+                    <div id="chart">
+                        <div class="loading-state">Loading market telemetry...</div>
+                    </div>
+                </section>
+
+                <section class="log-panel insight-panel">
+                    <h3 class="insight-title">AI Insight</h3>
+                    <p class="insight-text is-muted" id="ai-insight">正在整理近期趨勢摘要...</p>
+                </section>
+
+                <section class="summary-grid">
+                    <article class="metric-card">
+                        <h3>Enterprise Value</h3>
+                        <div class="value" id="ev-value">$ --</div>
+                        <div class="note" id="ev-note">等待資料...</div>
+                    </article>
+                    <article class="metric-card">
+                        <h3>BTC Value Held</h3>
+                        <div class="value" id="btc-value">$ --</div>
+                        <div class="note" id="btc-value-note">等待資料...</div>
+                    </article>
+                    <article class="metric-card">
+                        <h3>NAV Ratio</h3>
+                        <div class="value" id="nav-ratio">-- x</div>
+                        <div class="note" id="nav-note">等待資料...</div>
+                    </article>
+                </section>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <span>Source: yfinance + Strategy snapshot + Gemini insights</span>
+            <span id="last-sync">Last sync: --</span>
+        </footer>
     </div>
 
     <script>
-        async function fetchAndRenderChart() {
-            let indicatorData = [];
-            let chart;
+        const state = {
+            chart: null,
+            mode: 'mnav',
+            indicatorData: [],
+        };
 
-            // ==========================================
-            // 1. 獲取指標數據並繪製圖表
-            // ==========================================
-            try {
-                const response = await fetch('/api/indicator-data');
-                if (!response.ok) throw new Error('網路回應錯誤');
-                indicatorData = await response.json();
+        const els = {
+            aiInsight: document.getElementById('ai-insight'),
+            btcPrice: document.getElementById('btc-price'),
+            btcTrend: document.getElementById('btc-trend'),
+            btcValue: document.getElementById('btc-value'),
+            btcValueNote: document.getElementById('btc-value-note'),
+            chart: document.getElementById('chart'),
+            chartDescription: document.getElementById('chart-description'),
+            evNote: document.getElementById('ev-note'),
+            evValue: document.getElementById('ev-value'),
+            lastSync: document.getElementById('last-sync'),
+            mstrPrice: document.getElementById('mstr-price'),
+            mstrTrend: document.getElementById('mstr-trend'),
+            navNote: document.getElementById('nav-note'),
+            navRatio: document.getElementById('nav-ratio'),
+            networkLabel: document.getElementById('network-label'),
+            premiumProgress: document.getElementById('premium-progress'),
+            premiumTrend: document.getElementById('premium-trend'),
+            premiumValue: document.getElementById('premium-value'),
+            primaryLegendDot: document.getElementById('primary-legend-dot'),
+            primaryLegendLabel: document.getElementById('primary-legend-label'),
+            rangeLabel: document.getElementById('range-label'),
+            snapshotLabel: document.getElementById('snapshot-label'),
+            systemStatus: document.getElementById('system-status'),
+        };
 
-                // 提取圖表需要的 X 軸與 Y 軸資料
-                const dates = indicatorData.map(item => item.date);
-                const mnavValues = indicatorData.map(item => item.mnav);
-                const mnavPremiums = indicatorData.map(item => item.mnavPremiumPct);
-                const btcPrices = indicatorData.map(item => item.btcPrice);
-                const formatNumber = (value, digits = 2) => Number(value).toLocaleString('en-US', {
-                    minimumFractionDigits: digits,
-                    maximumFractionDigits: digits
-                });
-                const formatSignedLabel = (value, digits = 1, premiumLabel = 'Premium', discountLabel = 'Discount') => {
-                    const numericValue = Number(value);
-                    const label = numericValue >= 0 ? premiumLabel : discountLabel;
-                    return `${label}: ${formatNumber(Math.abs(numericValue), digits)}%`;
-                };
+        const chartModes = {
+            mnav: {
+                key: 'mnav',
+                title: 'mNAV (EV / BTC) + BTC Price',
+                accent: '#fb923c',
+                areaColor: 'rgba(251, 146, 60, 0.10)',
+                axisName: 'mNAV',
+                axisFormatter: (value) => `${Number(value).toFixed(2)}x`,
+                dataKey: 'mnav',
+                legend: 'mNAV (EV / BTC)',
+                description: 'Visualizing enterprise value leverage against BTC spot pricing.',
+                tooltipValue: (point) => `${formatNumber(point.mnav, 4)}x`,
+            },
+            premium: {
+                key: 'premium',
+                title: 'mNAV Premium / Discount + BTC Price',
+                accent: '#f87171',
+                areaColor: 'rgba(248, 113, 113, 0.12)',
+                axisName: 'Premium / Discount',
+                axisFormatter: (value) => `${Number(value).toFixed(1)}%`,
+                dataKey: 'mnavPremiumPct',
+                legend: 'mNAV Premium / Discount',
+                description: 'Tracking how far MSTR trades above or below BTC-implied NAV.',
+                tooltipValue: (point) => `${formatSignedPercent(point.mnavPremiumPct, 2)}`,
+            },
+        };
 
-                const chartDom = document.getElementById('chart');
-                chart = echarts.init(chartDom);
+        function formatNumber(value, digits = 2) {
+            return Number(value).toLocaleString('en-US', {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits,
+            });
+        }
 
-                const chartViews = {
-                    mnav: {
-                        title: 'mNAV (EV / BTC) + BTC Price',
-                        color: '#fa8c16',
-                        data: mnavValues,
-                        axisName: 'mNAV',
-                        axisLabel: '{value}x',
-                        legend: 'mNAV (EV / BTC)',
-                        btcLegend: 'BTC Price (USD)',
-                        formatter: (point) => `
-                            <div style="line-height:1.7;">
-                                <strong>${point.date}</strong><br>
-                                MSTR Price: $${formatNumber(point.mstrPrice)}<br>
-                                Enterprise Value: $${formatNumber(point.enterpriseValue)}<br>
-                                mNAV (EV / BTC): ${formatNumber(point.mnav, 3)}x<br>
-                                → mNAV ${formatSignedLabel(point.mnavPremiumPct, 1)}<br>
-                                BTC Price: $${formatNumber(point.btcPrice)}<br>
-                                BTC Value: $${formatNumber(point.btcValue)}<br>
-                                Official Snapshot As Of: ${point.snapshotAsOfDate ?? 'N/A'}
-                            </div>
-                        `
-                    },
-                    mnavPremium: {
-                        title: 'mNAV Premium / Discount + BTC Price',
-                        color: '#ee6666',
-                        data: mnavPremiums,
-                        axisName: 'mNAV Premium (%)',
-                        axisLabel: '{value} %',
-                        legend: 'mNAV Premium / Discount (%)',
-                        btcLegend: 'BTC Price (USD)',
-                        formatter: (point) => `
-                            <div style="line-height:1.7;">
-                                <strong>${point.date}</strong><br>
-                                MSTR Price: $${formatNumber(point.mstrPrice)}<br>
-                                Enterprise Value: $${formatNumber(point.enterpriseValue)}<br>
-                                mNAV (EV / BTC): ${formatNumber(point.mnav, 3)}x<br>
-                                → mNAV ${formatSignedLabel(point.mnavPremiumPct, 1)}<br>
-                                BTC Price: $${formatNumber(point.btcPrice)}<br>
-                                BTC Value: $${formatNumber(point.btcValue)}<br>
-                                Official Snapshot As Of: ${point.snapshotAsOfDate ?? 'N/A'}
-                            </div>
-                        `,
-                        areaColor: 'rgba(238, 102, 102, 0.1)'
-                    }
-                };
+        function formatCompactUSD(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                notation: 'compact',
+                maximumFractionDigits: 2,
+            }).format(Number(value));
+        }
 
-                const renderChart = (viewKey) => {
-                    const view = chartViews[viewKey];
-                    chart.setOption({
-                        title: {
-                            text: view.title,
-                            left: 'center',
-                            top: 8,
-                            textStyle: {
-                                fontSize: 15,
-                                fontWeight: 600,
-                                color: '#1f2937'
-                            }
-                        },
-                        tooltip: {
-                            trigger: 'axis',
-                            axisPointer: { type: 'cross' },
-                            formatter: (params) => view.formatter(indicatorData[params[0].dataIndex])
-                        },
-                        legend: {
-                            data: [view.legend, view.btcLegend],
-                            bottom: 0
-                        },
-                        grid: { left: '8%', right: '8%', top: '16%', bottom: '12%', containLabel: true },
-                        xAxis: {
-                            type: 'category',
-                            boundaryGap: false,
-                            data: dates
-                        },
-                        yAxis: [
-                            {
-                                type: 'value',
-                                name: view.axisName,
-                                position: 'left',
-                                axisLine: { show: true, lineStyle: { color: view.color } },
-                                axisLabel: { formatter: view.axisLabel },
-                                scale: true
-                            },
-                            {
-                                type: 'value',
-                                name: 'BTC Price',
-                                position: 'right',
-                                axisLine: { show: true, lineStyle: { color: '#5470c6' } },
-                                axisLabel: { formatter: '$ {value}' },
-                                scale: true,
-                                splitLine: { show: false }
-                            }
-                        ],
-                        series: [
-                            {
-                                name: view.legend,
-                                type: 'line',
-                                yAxisIndex: 0,
-                                data: view.data,
-                                smooth: true,
-                                itemStyle: { color: view.color },
-                                lineStyle: { width: 3 },
-                                areaStyle: view.areaColor ? { color: view.areaColor } : undefined
-                            },
-                            {
-                                name: view.btcLegend,
-                                type: 'line',
-                                yAxisIndex: 1,
-                                data: btcPrices,
-                                smooth: true,
-                                itemStyle: { color: '#5470c6' },
-                                lineStyle: { width: 3 },
-                                areaStyle: { color: 'rgba(84, 112, 198, 0.08)' }
-                            }
-                        ]
-                    }, true);
-                };
+        function formatUSD(value, digits = 2) {
+            return `$${formatNumber(value, digits)}`;
+        }
 
-                const toggleButtons = document.querySelectorAll('.chart-toggle');
-                toggleButtons.forEach((button) => {
-                    button.addEventListener('click', () => {
-                        toggleButtons.forEach((item) => item.classList.remove('active'));
-                        button.classList.add('active');
-                        renderChart(button.dataset.view);
-                    });
-                });
+        function formatDelta(current, previous, digits = 2, suffix = '') {
+            const delta = Number(current) - Number(previous);
+            const sign = delta >= 0 ? '+' : '-';
+            return {
+                text: `${sign}${formatNumber(Math.abs(delta), digits)}${suffix}`,
+                className: delta >= 0 ? 'positive' : 'negative',
+            };
+        }
 
-                renderChart('mnav');
+        function formatSignedPercent(value, digits = 1) {
+            const numeric = Number(value);
+            if (numeric === 0) {
+                return `Flat ${formatNumber(0, digits)}%`;
+            }
+            const label = numeric > 0 ? 'Premium' : 'Discount';
+            return `${label} ${formatNumber(Math.abs(numeric), digits)}%`;
+        }
 
+        function updateTextWithTrend(element, deltaInfo, prefix = '24h move ') {
+            element.className = `metric-trend ${deltaInfo.className}`;
+            element.textContent = `${prefix}${deltaInfo.text}`;
+        }
+
+        function setInsight(message, tone = 'muted') {
+            els.aiInsight.className = `insight-text is-${tone}`;
+            els.aiInsight.textContent = message;
+        }
+
+        function ensureChart() {
+            if (!state.chart) {
+                state.chart = echarts.init(els.chart);
                 window.addEventListener('resize', () => {
-                    chart.resize();
+                    state.chart && state.chart.resize();
                 });
+            }
+            return state.chart;
+        }
 
-            } catch (error) {
-                console.error("Fetch data error:", error);
-                document.getElementById('chart').innerText = '無法載入資料，請確認後端 http://127.0.0.1:8000 是否正在執行。';
-                document.getElementById('ai-insight').innerText = '因缺乏數據，無法進行分析。';
-                return; // 如果抓不到圖表數據，就中斷執行，不呼叫 AI
+        function renderChart() {
+            if (!state.indicatorData.length) {
+                return;
             }
 
-            // ==========================================
-            // 2. 獲取 AI 分析報告
-            // ==========================================
-            try {
-                // 將抓到的完整數據丟給後端的 AI API
-                const insightResponse = await fetch('/api/insights', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json' 
-                    },
-                    body: JSON.stringify(indicatorData)
-                });
-                
-                if (!insightResponse.ok) throw new Error('AI API 回應錯誤');
-                
-                const insightData = await insightResponse.json();
-                
-                // 將回傳的分析文字更新到網頁上
-                document.getElementById('ai-insight').innerText = insightData.insight;
+            const mode = chartModes[state.mode];
+            const chart = ensureChart();
+            const data = state.indicatorData;
+            const dates = data.map((item) => item.date);
+            const primarySeries = data.map((item) => item[mode.dataKey]);
+            const btcSeries = data.map((item) => item.btcPrice);
 
-            } catch (aiError) {
-                console.error("AI Insight error:", aiError);
-                document.getElementById('ai-insight').innerText = "AI 分析服務暫時無法使用，請確認後端 API 與 Gemini API Key 設定是否正確。";
+            els.chartDescription.textContent = mode.description;
+            els.primaryLegendDot.style.background = mode.accent;
+            els.primaryLegendLabel.textContent = mode.legend;
+
+            chart.setOption({
+                backgroundColor: 'transparent',
+                animationDuration: 500,
+                title: {
+                    text: mode.title,
+                    left: 'center',
+                    top: 4,
+                    textStyle: {
+                        color: '#f8fafc',
+                        fontFamily: 'Space Grotesk',
+                        fontSize: 18,
+                        fontWeight: 700,
+                    },
+                },
+                grid: {
+                    left: '6%',
+                    right: '7%',
+                    top: '16%',
+                    bottom: '10%',
+                    containLabel: true,
+                },
+                legend: {
+                    show: false,
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(2, 6, 23, 0.96)',
+                    borderColor: 'rgba(71, 85, 105, 0.5)',
+                    textStyle: {
+                        color: '#e2e8f0',
+                        fontFamily: 'JetBrains Mono',
+                    },
+                    formatter: (params) => {
+                        const point = data[params[0].dataIndex];
+                        return `
+                            <div style="line-height:1.75; min-width:240px;">
+                                <strong style="color:#f8fafc;">${point.date}</strong><br>
+                                MSTR Price: ${formatUSD(point.mstrPrice)}<br>
+                                BTC Price: ${formatUSD(point.btcPrice)}<br>
+                                EV: ${formatCompactUSD(point.enterpriseValue)}<br>
+                                BTC Value: ${formatCompactUSD(point.btcValue)}<br>
+                                ${mode.legend}: ${mode.tooltipValue(point)}<br>
+                                Snapshot As Of: ${point.snapshotAsOfDate || 'N/A'}
+                            </div>
+                        `;
+                    },
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: dates,
+                    axisLine: {
+                        lineStyle: { color: '#334155' },
+                    },
+                    axisLabel: {
+                        color: '#64748b',
+                        fontFamily: 'JetBrains Mono',
+                        fontSize: 10,
+                    },
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: mode.axisName,
+                        scale: true,
+                        axisLine: {
+                            show: true,
+                            lineStyle: { color: mode.accent },
+                        },
+                        splitLine: {
+                            lineStyle: { color: 'rgba(51, 65, 85, 0.32)' },
+                        },
+                        axisLabel: {
+                            color: mode.accent,
+                            fontFamily: 'JetBrains Mono',
+                            formatter: mode.axisFormatter,
+                        },
+                    },
+                    {
+                        type: 'value',
+                        name: 'BTC Price',
+                        position: 'right',
+                        scale: true,
+                        axisLine: {
+                            show: true,
+                            lineStyle: { color: '#38bdf8' },
+                        },
+                        splitLine: { show: false },
+                        axisLabel: {
+                            color: '#38bdf8',
+                            fontFamily: 'JetBrains Mono',
+                            formatter: (value) => `$${Number(value / 1000).toFixed(0)}k`,
+                        },
+                    },
+                ],
+                series: [
+                    {
+                        name: mode.legend,
+                        type: 'line',
+                        smooth: true,
+                        yAxisIndex: 0,
+                        data: primarySeries,
+                        symbol: 'none',
+                        lineStyle: {
+                            color: mode.accent,
+                            width: 3,
+                        },
+                        areaStyle: {
+                            color: mode.areaColor,
+                        },
+                        emphasis: {
+                            focus: 'series',
+                        },
+                    },
+                    {
+                        name: 'BTC Price',
+                        type: 'line',
+                        smooth: true,
+                        yAxisIndex: 1,
+                        data: btcSeries,
+                        symbol: 'none',
+                        lineStyle: {
+                            color: '#38bdf8',
+                            width: 3,
+                        },
+                        areaStyle: {
+                            color: 'rgba(56, 189, 248, 0.08)',
+                        },
+                        emphasis: {
+                            focus: 'series',
+                        },
+                    },
+                ],
+            }, true);
+        }
+
+        function updateSummaryCards() {
+            const data = state.indicatorData;
+            const latest = data[data.length - 1];
+            const previous = data[Math.max(0, data.length - 2)] || latest;
+            const dateRange = `${data[0].date} -> ${latest.date}`;
+            const premiumWidth = Math.min(Math.max(Math.abs(latest.mnavPremiumPct), 0), 40) / 40 * 100;
+
+            els.mstrPrice.textContent = formatUSD(latest.mstrPrice);
+            els.btcPrice.textContent = formatUSD(latest.btcPrice);
+            els.premiumValue.textContent = `${formatNumber(latest.mnavPremiumPct, 1)}%`;
+
+            updateTextWithTrend(els.mstrTrend, formatDelta(latest.mstrPrice, previous.mstrPrice), '1d move ');
+            updateTextWithTrend(els.btcTrend, formatDelta(latest.btcPrice, previous.btcPrice), '1d move ');
+
+            const premiumDelta = formatDelta(latest.mnavPremiumPct, previous.mnavPremiumPct, 2, ' pts');
+            els.premiumTrend.className = `metric-trend ${premiumDelta.className}`;
+            els.premiumTrend.textContent = `${formatSignedPercent(latest.mnavPremiumPct, 1)} | delta ${premiumDelta.text}`;
+            els.premiumProgress.style.width = `${premiumWidth}%`;
+
+            els.evValue.textContent = formatCompactUSD(latest.enterpriseValue);
+            els.evNote.textContent = `MSTR market cap plus debt/pref minus cash as of ${latest.date}`;
+
+            els.btcValue.textContent = formatCompactUSD(latest.btcValue);
+            els.btcValueNote.textContent = `${Number(latest.btcHoldings).toLocaleString('en-US')} BTC marked to market`;
+
+            els.navRatio.textContent = `${formatNumber(latest.mnav, 3)}x`;
+            els.navNote.textContent = `Snapshot date ${latest.snapshotAsOfDate || 'N/A'} | shares ${Number(latest.sharesOutstanding).toLocaleString('en-US')}`;
+
+            els.rangeLabel.textContent = `Range: ${data.length} sessions`;
+            els.snapshotLabel.textContent = `Snapshot: ${latest.snapshotAsOfDate || 'N/A'}`;
+            els.lastSync.textContent = `Last sync: ${dateRange}`;
+        }
+
+        async function fetchIndicatorData() {
+            const response = await fetch('/api/indicator-data');
+
+            if (!response.ok) {
+                throw new Error(`Indicator API failed with status ${response.status}`);
+            }
+
+            const payload = await response.json();
+            if (!Array.isArray(payload) || payload.length === 0) {
+                throw new Error('Indicator API returned an empty dataset.');
+            }
+
+            els.systemStatus.textContent = 'Operational';
+            els.networkLabel.textContent = 'Strategy + yfinance';
+            return payload;
+        }
+
+        async function fetchInsights(data) {
+            const response = await fetch('/api/insights', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                let message = `AI insight API failed with status ${response.status}.`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData && errorData.detail) {
+                        message = errorData.detail;
+                    }
+                } catch (error) {
+                    console.error('Failed to parse AI error payload.', error);
+                }
+                throw new Error(message);
+            }
+
+            const payload = await response.json();
+            if (!payload.insight) {
+                throw new Error('AI insight API returned an empty insight.');
+            }
+            return payload.insight;
+        }
+
+        async function bootDashboard() {
+            setInsight('正在整理近期趨勢摘要...', 'muted');
+
+            try {
+                state.indicatorData = await fetchIndicatorData();
+                updateSummaryCards();
+                renderChart();
+            } catch (error) {
+                console.error('Indicator load failed.', error);
+                els.systemStatus.textContent = 'Degraded';
+                els.chart.innerHTML = `<div class="error-state">Unable to load market telemetry.<br>${error.message}</div>`;
+                setInsight(`資料載入失敗：${error.message}`, 'error');
+                return;
+            }
+
+            try {
+                const insight = await fetchInsights(state.indicatorData);
+                setInsight(insight, 'muted');
+            } catch (error) {
+                console.error('Insight load failed.', error);
+                setInsight(`AI 摘要暫時不可用：${error.message}`, 'warning');
             }
         }
 
-        // 執行主程式
-        fetchAndRenderChart();
+        document.querySelectorAll('.mode-button').forEach((button) => {
+            button.addEventListener('click', () => {
+                const mode = button.dataset.mode;
+                if (!mode || mode === state.mode) {
+                    return;
+                }
+
+                state.mode = mode;
+                document.querySelectorAll('.mode-button').forEach((item) => item.classList.remove('active'));
+                button.classList.add('active');
+                renderChart();
+            });
+        });
+
+        bootDashboard();
     </script>
 </body>
 </html>
