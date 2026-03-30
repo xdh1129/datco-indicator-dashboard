@@ -725,6 +725,14 @@
             els.aiInsight.textContent = message;
         }
 
+        function getInsightFallbackMessage(error) {
+            const detail = String(error && error.message ? error.message : '').toLowerCase();
+            if (detail.includes('429') || detail.includes('resource_exhausted') || detail.includes('quota')) {
+                return 'AI 摘要暫時不可用，請稍後再試。';
+            }
+            return 'AI 摘要暫時不可用。';
+        }
+
         function ensureChart() {
             if (!state.chart) {
                 state.chart = echarts.init(els.chart);
@@ -986,7 +994,7 @@
                 setInsight(insight, 'muted');
             } catch (error) {
                 console.error('Insight load failed.', error);
-                setInsight(`AI 摘要暫時不可用：${error.message}`, 'warning');
+                setInsight(getInsightFallbackMessage(error), 'warning');
             }
         }
 
